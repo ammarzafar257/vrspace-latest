@@ -11,9 +11,9 @@ RUN apt update && apt install -y \
 #Set working directory
 WORKDIR /home/
 
-#Clone VRSpace from github       
+#Clone vrspace-latest from github       
 RUN git clone https://github.com/ammarzafar257/vrspace-latest
-RUN cd vrspace && git checkout development
+RUN cd vrspace-latest && git checkout development
 
 #Expose ports 8080 and 8443
 EXPOSE 8080
