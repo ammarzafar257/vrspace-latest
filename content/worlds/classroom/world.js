@@ -11,6 +11,15 @@ export class Classroom extends World {
             scale:{x:0.3,y:0.3,z:0.3}
           }
         ]
+      }, 
+      "PortalRoomV2.glb" : {
+        instances:[
+          {
+            scale:{x:1,y:1,z:1},
+            position:{x:50,y:5,z:0},
+            rotation:{x:0,y:0,z:0}
+          }
+        ]
       },
       "city/scene.gltf":{
         instances:[

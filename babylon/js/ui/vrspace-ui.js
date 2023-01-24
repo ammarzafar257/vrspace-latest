@@ -20,13 +20,13 @@ export class VRSpaceUI {
     /** Path to logo, null defaults to contentBase+/babylon (vrspace.org logo)*/
     this.logoPath = null;
     /** Logo file name, defaults to logo.glb */
-    this.logoFile = "logo.glb";
+    this.logoFile = "PortalRoomV2.glb";
     /** vrspace.org logo mesh */
     this.logo = null;
     /** Path to logo, null defaults to contentBase+/babylon/portal */
     this.portalPath = null;
     /** Portal file name, defaults to scene.gltf */
-    this.portalFile = "scene.gltf";
+    this.portalFile = "PortalTexured.glb";
     /** portal mesh */
     this.portal = null;
     /** debug output enabled */
@@ -70,11 +70,13 @@ export class VRSpaceUI {
       this.assetLoader = new AssetLoader(this.scene);
       // TODO figure out location of script
       var container = await BABYLON.SceneLoader.LoadAssetContainerAsync(this.logoDir(),this.logoFile,this.scene);
-      this.logo = container.meshes[0];
+      this.logo = container.createRootMesh();
+      
       for ( var i = 0; i < container.meshes; i++ ) {
-        container.meshes[i].checkCollisions = false;
+        container.meshes[i].checkCollisions = true;
       }
-      this.logo.name = "VRSpace.org Logo";
+
+      if(this.logo && this.logo.name) this.logo.name = "VRSpace.org Logo";
       await this.loadPortal(scene);
       this.initialized = true;
     }
@@ -127,7 +129,7 @@ export class VRSpaceUI {
       container.materials[0].metallic = 0.85;
       
       this.portal = container.createRootMesh();
-      this.portal.rotation = new BABYLON.Vector3(0,Math.PI/2,0);
+      // this.portal.rotation = new BABYLON.Vector3(0,Math.PI/2,0);
       this.portal.name = 'Portal';
       //container.addAllToScene();
     }
@@ -273,14 +275,14 @@ export class VRSpaceUI {
   @param shadows true ofr false
    */
   receiveShadows( node, shadows ) {
-    node.receiveShadows = shadows;
-    if ( node.material ) {
+    if(node && node.receiveShadows) node.receiveShadows = shadows;
+    if (node && node.material ) {
       if ( node.material.getClassName() == "PBRMaterial" ) {
         // something to do with inverse square root of physical material
         node.material.usePhysicalLightFalloff = false;
       }
     }
-    var children = node.getChildren();
+    var children = node ? node.getChildren() : [];
     for ( var i = 0; i < children.length; i++ ) {
       this.receiveShadows(children[i], shadows);
     }
@@ -294,16 +296,16 @@ export class VRSpaceUI {
   @returns copied mesh
    */
   copyMesh(mesh, parent, replaceParent) {
-    if ( mesh.geometry ) {
-      var copy = mesh.createInstance(mesh.name+"-copy");
-      copy.parent = parent;
+    if (mesh && mesh.geometry ) {
+      var copy = mesh ? mesh.createInstance(mesh.name+"-copy") : null;
+      if(copy) copy.parent = parent ? parent : null;
     } else if (replaceParent && parent) {
       copy = parent;
     } else {
-      var copy = mesh.clone( mesh.name+"-copy", parent, true, false );
-      copy.parent = parent;
+      var copy = mesh ? mesh.clone( mesh.name+"-copy", parent, true, false ) : null;
+      if(copy) copy.parent = parent ? parent : null;
     }
-    var children = mesh.getChildren();
+    var children = mesh ? mesh.getChildren() : [];
     for ( var i = 0; i < children.length; i++ ) {
       this.copyMesh(children[i], copy, replaceParent);
     }

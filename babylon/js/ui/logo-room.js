@@ -9,7 +9,7 @@ export class LogoRoom {
    */
   constructor( scene ) {
     this.scene = scene;
-    this.diameter = 20;
+    this.diameter = 16;
     this.shadows = true;
   }
   /**
@@ -39,7 +39,7 @@ export class LogoRoom {
     walls.parent = this.floorGroup;
 
     this.setDiameter(this.diameter);
-    this.floorGroup.position = new BABYLON.Vector3( 0, -0.05, 0 );
+    // this.floorGroup.position = new BABYLON.Vector3( 0, -0.05, 0 );
     this.scene.addTransformNode(this.floorGroup);
     
     return this;
@@ -51,7 +51,7 @@ export class LogoRoom {
   /** set room diameter and rescale */
   setDiameter( diameter ) {
     this.diameter = diameter;
-    this.floorGroup.scaling = new BABYLON.Vector3(this.diameter,2,this.diameter);
+    // this.floorGroup.scaling = new BABYLON.Vector3(this.diameter,2,this.diameter);
   }
   /** get current diameter */
   getDiameter() {

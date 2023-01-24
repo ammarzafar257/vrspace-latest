@@ -28,7 +28,7 @@ export class LoadProgressIndicator {
     var indicator = this;
     VRSPACEUI.init(scene).then( (ui) => {
         indicator.mesh = ui.logo.clone("LoadingProgressIndicator");
-        indicator.mesh.scaling.scaleInPlace(0.05);
+        indicator.mesh.scaling.scaleInPlace(0.005);
         indicator.attachTo( indicator.camera );
         indicator.zeroRotation = new BABYLON.Quaternion.RotationAxis(BABYLON.Axis.X,-Math.PI/2);
         indicator.mesh.rotationQuaternion = indicator.zeroRotation;
