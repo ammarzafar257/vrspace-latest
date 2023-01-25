@@ -1,10 +1,7 @@
 package org.vrspace.server.core;
 
 import java.lang.reflect.Modifier;
-import java.lang.reflect.ParameterizedType;
-import java.lang.reflect.Type;
 import java.security.Principal;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -87,36 +84,12 @@ public class WorldManager {
 
   private World defaultWorld;
 
-  @SuppressWarnings("rawtypes")
-  private Map<Class, PersistenceManager> persistors = new HashMap<>();
-
   @PostConstruct
   public void init() {
     this.privateJackson = this.jackson.copy();
     this.privateJackson.setAnnotationIntrospector(new JacksonAnnotationIntrospector());
     this.dispatcher = new Dispatcher(this.privateJackson);
     this.sessionTracker = new SessionTracker(this.config);
-    for (Class<?> c : ClassUtil.findSubclasses(PersistenceManager.class)) {
-      for (Type t : ((ParameterizedType) c.getGenericSuperclass()).getActualTypeArguments()) {
-        try {
-          @SuppressWarnings("rawtypes")
-          PersistenceManager p = (PersistenceManager) c.getConstructor(VRObjectRepository.class).newInstance(db);
-          persistors.put((Class) t, p);
-          log.debug("Instantiated " + p + " for " + t);
-        } catch (Exception e) {
-          log.error("Failed to instantiate " + c, e);
-        }
-      }
-    }
-    @SuppressWarnings("rawtypes")
-    PersistenceManager pm = new PersistenceManager();
-    for (Class<?> c : ClassUtil.findSubclasses(VRObject.class)) {
-      if (persistors.get(c) == null) {
-        persistors.put(c, pm);
-        log.debug("Instantiated " + pm + " for " + c);
-      }
-    }
-    persistors.put(VRObject.class, pm);
   }
 
   // CHECKME: should this be here?
@@ -154,7 +127,7 @@ public class WorldManager {
   }
 
   public <T extends VRObject> T save(T obj) {
-    T ret = db.save(obj); // CHECKME: writeback save/write ?
+    T ret = db.save(obj);
     cache.put(new ID(obj), ret);
     return ret;
   }
@@ -184,8 +157,6 @@ public class WorldManager {
         return cached;
       } else {
         o = db.get(o.getClass(), o.getId());
-        // TODO: post-load operations
-        persistors.get(o.getClass()).postLoad(o);
         cache.put(id, o);
         return o;
       }
@@ -310,18 +281,23 @@ public class WorldManager {
   }
 
   public Welcome enter(Client client, String worldName) {
+   log.info("Enter World name " + worldName);
+   log.info("Enter Client " + client); 
     World world = getOrCreateWorld(worldName);
     return enter(client, world);
   }
 
   public Welcome enter(Client client, World world) {
-    if (client.getWorld() != null) {
-      if (client.getWorld().equals(world)) {
-        throw new IllegalArgumentException("Already in world " + world);
-      }
+  log.info("Client " +client);
+  //log.info("Client World " , client.getWorld());
+  log.info("World " +world);
+  //  if (client.getWorld() != null) {
+  //    if (client.getWorld().equals(world)) {
+  //      throw new IllegalArgumentException("Already in world " + world);
+  //    }
       // exit current world first
-      exit(client);
-    }
+  //    exit(client);
+  //  }
     // create audio stream
     streamManager.join(client, world);
 
@@ -369,14 +345,13 @@ public class WorldManager {
     // delete guest client
     if (client.isGuest()) {
       List<Ownership> owned = db.getOwned(client.getId());
-      for (Ownership ownership : owned) {
-        // CHECKME getOwned seems to return shallow copy!?
-        VRObject ownedObject = cache.get(ownership.getOwned().getObjectId());
-        if (ownedObject.isTemporary()) {
-          // remove() doesn't free up cache
-          delete(client, ownedObject);
-          db.delete(ownership);
-          log.debug("Deleted owned temporary " + ownership.getOwned().getObjectId());
+      if (owned != null) {
+        for (Ownership ownership : owned) {
+          if (ownership.getOwned().isTemporary()) {
+            delete(client, ownership.getOwned());
+            db.delete(ownership);
+            log.debug("Deleted owned temporary " + ownership.getOwned().getObjectId());
+          }
         }
       }
       delete(client, client);
@@ -431,34 +406,18 @@ public class WorldManager {
         if (scene == null) {
           throw new UnsupportedOperationException("Client has no scene " + client);
         }
-        // find object source, either in scene or cache - it has to be seen by anyone
         VRObject obj = scene.get(event.getSourceID());
         if (obj == null) {
-          obj = cache.get(event.getSourceID());
+          // TODO: scene could not find object - this should be allowed for admin
+          throw new UnsupportedOperationException("Object not found in the scene: " + event.getSourceID());
+        } else {
+          event.setSource(obj);
         }
-        if (obj == null) {
-          throw new UnsupportedOperationException("Unknown object: " + event.getSourceID());
-          // } else if (!obj.isPermanent()) {
-          // CKECKME: permanents only?
-          // TODO test
-          // throw new UnsupportedOperationException("Object not found in the scene: " +
-          // event.getSourceID());
-        }
-        event.setSource(obj);
       }
-      // CHECKME: cache ownership?
       Ownership ownership = db.getOwnership(client.getId(), event.getSource().getId());
       event.setOwnership(ownership);
-      // dispatch
       dispatcher.dispatch(event);
-
-      // write to the database after successful dispatch
-      try {
-        persistors.get(event.getSource().getClass()).persist(event);
-      } catch (Exception e) {
-        log.error("Error persisting " + event, e);
-      }
-
+      client.getWriteBack().write(event.getSource());
       if (scene != null) {
         scene.update();
       }
