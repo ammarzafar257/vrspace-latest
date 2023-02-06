@@ -1,0 +1,10 @@
+version: '3'
+services:
+  server:
+    image: vrspace
+    build:
+      context: .
+      dockerfile: dockerfile.prod
+    ports:
+      - 8080:8080
+      - 8443:8443

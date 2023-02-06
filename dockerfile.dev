@@ -1,0 +1,12 @@
+FROM debian:latest
+
+RUN apt-get update -y
+RUN apt-get install -y git bash-completion default-jdk maven
+
+WORKDIR /app/
+
+COPY . .
+
+RUN cd server && mvn clean install
+
+CMD [ "java", "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n", "-jar", "server/target/server-0.4.8-SNAPSHOT.jar" ]

@@ -1,0 +1,15 @@
+FROM debian:latest
+
+RUN apt-get update -y
+RUN apt-get install -y git bash-completion default-jdk maven
+
+WORKDIR /app/
+
+COPY . .
+
+RUN cd server && mvn clean install
+
+EXPOSE 8080
+EXPOSE 8443
+
+CMD [ "java", "-jar", "server/target/server-0.4.8-SNAPSHOT.jar" ]
